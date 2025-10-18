@@ -1,19 +1,21 @@
 import { useRef, useEffect } from "react";
 import * as THREE from "three";
+import { createSegments } from "./Textures/PlayingField/Segments/createSegments";
+import { createPlanes } from "./Textures/PlayingField/Planes/createPlanes";
 
 const Chess = () => {
-    const canvasRef = useRef(null);
-    const sceneRef = useRef(null);
-    const cameraRef = useRef(null);
-    const rendererRef = useRef(null);
-    const animationIdRef = useRef(null);
-    const keyStateRef = useRef({});
+    const canvasRef = useRef<HTMLCanvasElement>(null);
+    const sceneRef = useRef<THREE.Scene | null>(null);
+    const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+    const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+    const animationIdRef = useRef<number | null>(null);
+    const keyStateRef = useRef<{ [key: string]: boolean }>({});
 
     useEffect(() => {
         if (!canvasRef.current) return;
 
         // Инициализация сцены
-        const scene = new THREE.Scene();
+        const scene: THREE.Scene = new THREE.Scene();
         sceneRef.current = scene;
 
         // Инициализация камеры
@@ -23,7 +25,7 @@ const Chess = () => {
             0.1,
             1000
         );
-        
+
         // Начальное положение камеры
         camera.position.set(0, 5, 5);
         camera.lookAt(0, 0, 0);
@@ -38,44 +40,11 @@ const Chess = () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         rendererRef.current = renderer;
 
+        // Создание сетки
+        createSegments(THREE, scene)
+
         // Создание плоскости
-        const geometry = new THREE.BufferGeometry();
-        const vertices = new Float32Array([
-            2, 2, 0,
-            2, -2, 0,
-            -2, -2, 0,
-            -2, 2, 0
-        ]);
-        const indices = [0, 1, 2, 0, 2, 3];
-        
-        geometry.setIndex(indices);
-        geometry.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
-
-        // Создание плоскости 1
-        const geometry1 = new THREE.BufferGeometry();
-        const vertices1 = new Float32Array([
-            2, 2, 1,
-            2, -2, 1,
-            -2, -2, 1,
-            -2, 2, 1
-        ]);
-        const indices1 = [0, 1, 2, 0, 2, 3];
-        
-        geometry1.setIndex(indices1);
-        geometry1.setAttribute('position', new THREE.BufferAttribute(vertices1, 3));
-        
-        const material = new THREE.MeshBasicMaterial({
-            color: 0x0000ff,
-            transparent: true,
-            opacity: 0.1,
-            side: THREE.DoubleSide
-        });
-        
-        const plane = new THREE.Mesh(geometry, material);
-        scene.add(plane);
-
-        const plane1 = new THREE.Mesh(geometry1, material);
-        scene.add(plane1);
+        createPlanes(THREE, scene)
 
         // Оси координат для отладки
         const axesHelper = new THREE.AxesHelper(5);
@@ -83,7 +52,7 @@ const Chess = () => {
 
         // Параметры вращения камеры
         const cameraParams = {
-            radius: 7,
+            radius: 13,
             theta: Math.PI / 4,
             phi: Math.PI / 4,
         };
@@ -93,10 +62,10 @@ const Chess = () => {
             const x = cameraParams.radius * Math.sin(cameraParams.phi) * Math.cos(cameraParams.theta);
             const y = cameraParams.radius * Math.cos(cameraParams.phi);
             const z = cameraParams.radius * Math.sin(cameraParams.phi) * Math.sin(cameraParams.theta);
-            
+
             camera.position.set(x, y, z);
             camera.lookAt(0, 0, 0);
-            
+
             // Отладочная информация
             console.log("Camera position:", camera.position);
             console.log("Camera params:", cameraParams);
@@ -106,12 +75,12 @@ const Chess = () => {
         updateCameraPosition();
 
         // Обработчик клавиатуры
-        const handleKeyDown = (event) => {
+        const handleKeyDown = (event: KeyboardEvent) => {
             keyStateRef.current[event.key.toLowerCase()] = true;
             console.log("Key pressed:", event.key);
         };
-        
-        const handleKeyUp = (event) => {
+
+        const handleKeyUp = (event: KeyboardEvent) => {
             keyStateRef.current[event.key.toLowerCase()] = false;
         };
 
@@ -122,40 +91,35 @@ const Chess = () => {
         // Анимация
         const animate = () => {
             animationIdRef.current = requestAnimationFrame(animate);
-            
+
             const rotationSpeed = 0.05;
-            const zoomSpeed = 0.2;
-            
+
             // Вращение камеры вокруг целевой точки
-            if (keyStateRef.current['q']) {
+            if (keyStateRef.current['й']) {
                 cameraParams.theta -= rotationSpeed;
-                console.log("Rotating left with Q");
             }
-            if (keyStateRef.current['e']) {
+            if (keyStateRef.current['у']) {
                 cameraParams.theta += rotationSpeed;
-                console.log("Rotating right with E");
             }
-            if (keyStateRef.current['w']) {
+            if (keyStateRef.current['ф']) {
                 cameraParams.phi -= rotationSpeed;
-                console.log("Rotating up with W");
             }
-            if (keyStateRef.current['s']) {
+            if (keyStateRef.current['в']) {
                 cameraParams.phi += rotationSpeed;
-                console.log("Rotating down with S");
             }
-            
+
             // Ограничение угла phi, чтобы камера не переворачивалась
             cameraParams.phi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraParams.phi));
-            
+
             // Ограничение радиуса
             cameraParams.radius = Math.max(2, Math.min(20, cameraParams.radius));
-            
+
             // Обновление позиции камеры
             updateCameraPosition();
-            
+
             renderer.render(scene, camera);
         };
-        
+
         // Запускаем анимацию
         animate();
 
