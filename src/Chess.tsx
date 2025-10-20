@@ -46,10 +46,6 @@ const Chess = () => {
         // Создание плоскости
         createPlanes(THREE, scene)
 
-        // Оси координат для отладки
-        const axesHelper = new THREE.AxesHelper(5);
-        scene.add(axesHelper);
-
         // Параметры вращения камеры
         const cameraParams = {
             radius: 13,

@@ -14,7 +14,7 @@ export const createSegments = (THREE: any, scene: THREE.Scene) => {
 
         const material = new THREE.LineBasicMaterial({
             color: color,
-            linewidth: 2,
+            linewidth: 1,
             transparent: true,
             opacity: 1
         });
