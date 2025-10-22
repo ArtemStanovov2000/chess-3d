@@ -2,6 +2,7 @@ import { useRef, useEffect } from "react";
 import * as THREE from "three";
 import { createSegments } from "./Textures/PlayingField/Segments/createSegments";
 import { createPlanes } from "./Textures/PlayingField/Planes/createPlanes";
+import { startField } from "./Textures/PlayingField/startField";
 
 const Chess = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -10,6 +11,34 @@ const Chess = () => {
     const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
     const animationIdRef = useRef<number | null>(null);
     const keyStateRef = useRef<{ [key: string]: boolean }>({});
+
+    const addSphere = (type: string, x: number, y: number, z: number) => {
+        if (!sceneRef.current) {
+            console.warn("Сцена не инициализирована");
+            return;
+        }
+
+        // Создаем геометрию сферы
+        const geometry = new THREE.SphereGeometry(0.3, 16, 16); // радиус 0.3, умеренная детализация
+
+        // Создаем материал для сферы
+        const material = new THREE.MeshBasicMaterial({
+            color: 0xff0000, // красный цвет
+            wireframe: false,
+            transparent: true, // Включаем прозрачность
+            opacity: 0.15,
+        });
+
+        // Создаем меш (объект) сферыву
+        const sphere = new THREE.Mesh(geometry, material);
+
+        // Устанавливаем позицию
+        sphere.position.set(x - 3.5, y - 3.5, z - 3.5);
+
+        // Добавляем сферу на сцену
+        sceneRef.current.add(sphere);
+    };
+
 
     useEffect(() => {
         if (!canvasRef.current) return;
@@ -40,11 +69,22 @@ const Chess = () => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         rendererRef.current = renderer;
 
+        for (let i = 0; i < startField.length; i++) {
+            for (let j = 0; j < startField.length; j++) {
+                for (let k = 0; k < startField.length; k++) {
+                    if(startField[i][j][k] != null) {
+                        addSphere("pv", i, j, k)
+                    }
+                }
+            }
+        }
+
         // Создание сетки
         createSegments(THREE, scene)
 
         // Создание плоскости
-        createPlanes(THREE, scene)
+        //createPlanes(THREE, scene)
+
 
         // Параметры вращения камеры
         const cameraParams = {
