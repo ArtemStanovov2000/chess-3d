@@ -1,8 +1,12 @@
-import { useRef, useEffect } from "react";
 import * as THREE from "three";
+import type { BoardCell, ChessBoard3D } from "./types";
+import { useRef, useEffect, useState } from "react";
 import { createSegments } from "./Textures/PlayingField/Segments/createSegments";
-import { createPlanes } from "./Textures/PlayingField/Planes/createPlanes";
 import { startField } from "./Textures/PlayingField/startField";
+import { initializeBoard } from "./boardUtils";
+import { getPossibleMoves } from "./logic/moveLogic/moveLogic";
+import ChessBoard from "./ChessBoard";
+
 
 const Chess = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -11,89 +15,212 @@ const Chess = () => {
     const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
     const animationIdRef = useRef<number | null>(null);
     const keyStateRef = useRef<{ [key: string]: boolean }>({});
+    const [board, setBoard] = useState<ChessBoard3D>(() => initializeBoard(startField));
+    const [selectedPiece, setSelectedPiece] = useState<[number, number, number] | null>(null);
 
-    const addSphere = (type: string, x: number, y: number, z: number) => {
+    console.log(board)
+
+    // Функция для получения срезов
+    const getSlices = (field: ChessBoard3D, sliceType:'depth') => {
+        const slices: BoardCell[][] = [];
+        if (sliceType === 'depth') {
+            for (let k = 0; k < 8; k++) {
+                const slice = [];
+                for (let i = 0; i < 8; i++) {
+                    for (let j = 0; j < 8; j++) {
+                        slice.push(field[i][j][k]);
+                    }
+                }
+                slices.push(slice);
+            }
+        }
+        
+        return slices;
+    };
+
+    // Обработчик клика по фигуре
+    const handlePieceClick = (position: [number, number, number]) => {
+        const [x, y, z] = position;
+        const cell = board[x]?.[y]?.[z];
+        
+        if (!cell) return;
+
+        // Если кликнули на уже выбранную фигуру - снимаем выделение
+        if (selectedPiece && selectedPiece[0] === x && selectedPiece[1] === y && selectedPiece[2] === z) {
+            clearHighlights();
+            setSelectedPiece(null);
+            return;
+        }
+
+        // Если есть выбранная фигура и кликнули на подсвеченную клетку - делаем ход
+        if (selectedPiece && cell.isHighlighted) {
+            makeMove(selectedPiece, position);
+            return;
+        }
+
+        // Если кликнули на фигуру - выделяем её и показываем возможные ходы
+        if (cell.piece) {
+            clearHighlights();
+            setSelectedPiece(position);
+            highlightPossibleMoves(position, cell.piece);
+        }
+    };
+
+    // Очистка всех подсветок
+    const clearHighlights = () => {
+        const newBoard = board.map(slice =>
+            slice.map(row =>
+                row.map(cell => ({
+                    ...cell,
+                    isHighlighted: false,
+                    isSelected: false,
+                    isAttack: false
+                }))
+            )
+        );
+        setBoard(newBoard);
+    };
+
+    // Подсветка возможных ходов
+    const highlightPossibleMoves = (position: [number, number, number], piece: any) => {
+        const [x, y, z] = position;
+        const possibleMoves = getPossibleMoves(position, piece, board);
+        
+        const newBoard = board.map((slice, i) =>
+            slice.map((row, j) =>
+                row.map((cell, k) => {
+                    // Проверяем, является ли эта клетка выбранной фигурой
+                    const isSelected = i === x && j === y && k === z;
+                    
+                    // Проверяем, является ли эта клетка возможным ходом
+                    const isMove = possibleMoves.some(([moveX, moveY, moveZ]) => 
+                        moveX === i && moveY === j && moveZ === k
+                    );
+                    
+                    // Проверяем, является ли клетка атакой (есть фигура противника)
+                    const isAttack = isMove && cell.piece !== null && cell.piece.color !== piece.color;
+
+                    return {
+                        ...cell,
+                        isSelected: isSelected,
+                        isHighlighted: isMove,
+                        isAttack: isAttack
+                    };
+                })
+            )
+        );
+
+        setBoard(newBoard);
+    };
+
+    // Функция выполнения хода
+    const makeMove = (from: [number, number, number], to: [number, number, number]) => {
+        const [fromX, fromY, fromZ] = from;
+        const [toX, toY, toZ] = to;
+        
+        const newBoard = [...board];
+        const movingPiece = newBoard[fromX][fromY][fromZ].piece;
+        
+        if (movingPiece) {
+            // Перемещаем фигуру
+            newBoard[toX][toY][toZ] = {
+                ...newBoard[toX][toY][toZ],
+                piece: movingPiece
+            };
+            
+            // Очищаем старую позицию
+            newBoard[fromX][fromY][fromZ] = {
+                ...newBoard[fromX][fromY][fromZ],
+                piece: null
+            };
+        }
+
+        clearHighlights();
+        setSelectedPiece(null);
+        setBoard(newBoard);
+    };
+
+    const slices = getSlices(board, 'depth');
+
+    // Three.js логика (без изменений)
+    const addSphere = (x: number, y: number, z: number) => {
         if (!sceneRef.current) {
             console.warn("Сцена не инициализирована");
             return;
         }
 
-        // Создаем геометрию сферы
-        const geometry = new THREE.SphereGeometry(0.3, 16, 16); // радиус 0.3, умеренная детализация
-
-        // Создаем материал для сферы
+        const geometry = new THREE.SphereGeometry(0.3, 16, 16);
         const material = new THREE.MeshBasicMaterial({
-            color: 0xff0000, // красный цвет
+            color: 0x005050,
             wireframe: false,
-            transparent: true, // Включаем прозрачность
-            opacity: 0.15,
+            transparent: true,
+            opacity: 0.55,
         });
 
-        // Создаем меш (объект) сферыву
         const sphere = new THREE.Mesh(geometry, material);
-
-        // Устанавливаем позицию
         sphere.position.set(x - 3.5, y - 3.5, z - 3.5);
-
-        // Добавляем сферу на сцену
         sceneRef.current.add(sphere);
     };
 
+    const getCanvasSize = () => {
+        const container = document.querySelector('.board-container') as HTMLElement;
+        if (container) {
+            return {
+                width: container.clientWidth,
+                height: container.clientHeight
+            };
+        }
+        return {
+            width: window.innerWidth,
+            height: window.innerHeight
+        };
+    };
 
     useEffect(() => {
         if (!canvasRef.current) return;
 
-        // Инициализация сцены
         const scene: THREE.Scene = new THREE.Scene();
         sceneRef.current = scene;
 
-        // Инициализация камеры
+        const { width: canvasWidth, height: canvasHeight } = getCanvasSize();
+
         const camera = new THREE.PerspectiveCamera(
             75,
-            window.innerWidth / window.innerHeight,
+            canvasWidth / canvasHeight,
             0.1,
             1000
         );
 
-        // Начальное положение камеры
-        camera.position.set(0, 5, 5);
+        camera.position.set(0, 7, 7);
         camera.lookAt(0, 0, 0);
         cameraRef.current = camera;
 
-        // Инициализация рендерера
         const renderer = new THREE.WebGLRenderer({
             canvas: canvasRef.current,
             alpha: true,
             antialias: true
         });
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(canvasWidth, canvasHeight);
         rendererRef.current = renderer;
 
         for (let i = 0; i < startField.length; i++) {
             for (let j = 0; j < startField.length; j++) {
                 for (let k = 0; k < startField.length; k++) {
-                    if(startField[i][j][k] != null) {
-                        addSphere("pv", i, j, k)
+                    if (startField[i][j][k] != null) {
+                        addSphere(i, j, k)
                     }
                 }
             }
         }
 
-        // Создание сетки
         createSegments(THREE, scene)
 
-        // Создание плоскости
-        //createPlanes(THREE, scene)
-
-
-        // Параметры вращения камеры
         const cameraParams = {
             radius: 13,
             theta: Math.PI / 4,
             phi: Math.PI / 4,
         };
 
-        // Функция обновления позиции камеры
         const updateCameraPosition = () => {
             const x = cameraParams.radius * Math.sin(cameraParams.phi) * Math.cos(cameraParams.theta);
             const y = cameraParams.radius * Math.cos(cameraParams.phi);
@@ -101,80 +228,71 @@ const Chess = () => {
 
             camera.position.set(x, y, z);
             camera.lookAt(0, 0, 0);
-
-            // Отладочная информация
-            console.log("Camera position:", camera.position);
-            console.log("Camera params:", cameraParams);
         };
 
-        // Инициализация позиции камеры
         updateCameraPosition();
 
-        // Обработчик клавиатуры
         const handleKeyDown = (event: KeyboardEvent) => {
             keyStateRef.current[event.key.toLowerCase()] = true;
-            console.log("Key pressed:", event.key);
         };
 
         const handleKeyUp = (event: KeyboardEvent) => {
             keyStateRef.current[event.key.toLowerCase()] = false;
         };
 
-        // Добавляем обработчики на window
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
 
-        // Анимация
         const animate = () => {
             animationIdRef.current = requestAnimationFrame(animate);
 
             const rotationSpeed = 0.05;
 
-            // Вращение камеры вокруг целевой точки
-            if (keyStateRef.current['й']) {
+            if (keyStateRef.current['й'] || keyStateRef.current['q']) {
                 cameraParams.theta -= rotationSpeed;
             }
-            if (keyStateRef.current['у']) {
+            if (keyStateRef.current['у'] || keyStateRef.current['e']) {
                 cameraParams.theta += rotationSpeed;
             }
-            if (keyStateRef.current['ф']) {
+            if (keyStateRef.current['ф'] || keyStateRef.current['a']) {
                 cameraParams.phi -= rotationSpeed;
             }
-            if (keyStateRef.current['в']) {
+            if (keyStateRef.current['в'] || keyStateRef.current['d']) {
                 cameraParams.phi += rotationSpeed;
             }
 
-            // Ограничение угла phi, чтобы камера не переворачивалась
             cameraParams.phi = Math.max(0.1, Math.min(Math.PI - 0.1, cameraParams.phi));
+            cameraParams.radius = Math.max(2, Math.min(28, cameraParams.radius));
 
-            // Ограничение радиуса
-            cameraParams.radius = Math.max(2, Math.min(20, cameraParams.radius));
-
-            // Обновление позиции камеры
             updateCameraPosition();
-
             renderer.render(scene, camera);
         };
 
-        // Запускаем анимацию
         animate();
 
-        // Обработчик изменения размера
         const handleResize = () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
+            const { width: newWidth, height: newHeight } = getCanvasSize();
+            camera.aspect = newWidth / newHeight;
             camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setSize(newWidth, newHeight);
         };
+
+        const resizeObserver = new ResizeObserver(handleResize);
+        const container = document.querySelector('.board-container');
+        if (container) {
+            resizeObserver.observe(container);
+        }
+
         window.addEventListener('resize', handleResize);
 
         return () => {
-            // Очистка
             if (animationIdRef.current) {
                 cancelAnimationFrame(animationIdRef.current);
             }
             window.removeEventListener('keydown', handleKeyDown);
             window.removeEventListener('keyup', handleKeyUp);
             window.removeEventListener('resize', handleResize);
+            resizeObserver.disconnect();
             renderer.dispose();
         };
     }, []);
@@ -185,9 +303,24 @@ const Chess = () => {
                 <h1>Chess-3D</h1>
             </header>
 
-            <div className="board-container">
-                <canvas ref={canvasRef} className="chess-canvas" />
-            </div>
+            <main className="main">
+                <div className="field">
+                    <div className="boards-container">
+                        {slices.map((slice, index) => (
+                            <ChessBoard 
+                                key={index} 
+                                board={slice} 
+                                level={index} 
+                                sliceType={'depth'}
+                                onCellClick={handlePieceClick}
+                            />
+                        ))}
+                    </div>
+                </div>
+                <div className="board-container">
+                    <canvas ref={canvasRef} className="chess-canvas" />
+                </div>
+            </main>
 
             <footer className="footer">
                 <button className="btn">Начать игру</button>

@@ -6,7 +6,7 @@
 
 .chess-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #cfcfdb 0%, #16213e 100%);
+  background: linear-gradient(135deg, #191970 0%, #001141 100%);
   display: flex;
   flex-direction: column;
   font-family: Arial, sans-serif;
@@ -16,34 +16,12 @@
   background: #52b69a;
   padding: 1rem;
   text-align: center;
+  flex-shrink: 0;
 }
 
 .header h1 {
   color: #ffffff;
   font-size: 2.5rem;
-}
-
-.board-container {
-  flex: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  perspective: 1000px;
-}
-
-.board-container {
-  flex: 1;
-  position: relative;
-}
-
-.chess-canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  display: block;
-  background: #000000;
 }
 
 .footer {
@@ -52,6 +30,7 @@
   display: flex;
   justify-content: center;
   gap: 2rem;
+  flex-shrink: 0;
 }
 
 .btn {
@@ -68,4 +47,171 @@
 
 .btn:hover {
   transform: scale(0.95);
+}
+
+.main {
+    flex: 1;
+    display: flex;
+    position: relative;
+}
+
+.board-container {
+    width: 45%;
+    position: relative;
+}
+
+.chess-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+    background-color: #000;
+}
+
+.field {
+    width: 55%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.boards-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    width: 100%;
+    padding-left: 30px;
+    padding-right: 30px;
+}
+
+.chess-board {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 10px;
+    backdrop-filter: blur(10px);
+}
+
+.chess-board h3 {
+    color: white;
+    text-align: center;
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.board-grid {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.board-row {
+    display: flex;
+    justify-content: center;
+}
+
+.board-cell {
+    width: 23px;
+    height: 23px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    border: none;
+    cursor: pointer;
+}
+
+.board-cell.light {
+    background-color: #005c05;
+}
+
+.board-cell.light:hover {
+    background-color: #007981;
+}
+
+.board-cell.dark {
+    background-color: #002c02;
+}
+
+.board-cell.dark:hover {
+    background-color: #001694;
+}
+
+.chess-piece {
+    font-weight: bold;
+}
+
+.white-piece {
+    color: #81b112;
+}
+
+.black-piece {
+    color: #0bb4b9;
+}
+
+/* Для скролла в поле */
+.field::-webkit-scrollbar {
+    width: 8px;
+}
+
+.field::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.field::-webkit-scrollbar-thumb {
+    background: #52b69a;
+    border-radius: 4px;
+}
+
+/* Добавьте это в конец вашего CSS файла */
+.slice-controls {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.slice-controls button {
+    padding: 8px 16px;
+    background: #b5e48c;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.slice-controls button:hover {
+    background: #99d98c;
+    transform: translateY(-2px);
+}
+
+.slice-controls button.active {
+    background: #76c893;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.board-cell.selected {
+    background-color: #ffff00 !important;
+    box-shadow: inset 0 0 0 2px #ff9900;
+}
+
+.board-cell.move {
+    background-color: #90ee90 !important;
+    position: relative;
+}
+
+.board-cell.attack {
+    background-color: #ff6b6b !important;
+}
+
+.board-cell.move::after {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background-color: #4caf50;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
 }
