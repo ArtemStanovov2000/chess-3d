@@ -13,7 +13,7 @@ export const startField =
     [
         [
             ["RW", null, null, "RW", "RW", null, null, "RW"],
-            [null, "HW", null, null, null, null, "HW", null],
+            [null, null, null, null, null, null, "HW", null],
             [null, "HW", "EW", null, "EW", null, "HW", null],
             ["RW", null, null, "KW", "QW", "EW", null, "RW"],
             ["RW", null, "EW", "QW", "QW", null, null, "RW"],
@@ -22,9 +22,9 @@ export const startField =
             ["RW", null, null, "RW", "RW", null, null, "RW"],
         ],
         [
-            ["PW", "PW", "PW", "PW", "PW", "PW", "PW", "PW"],
-            ["PW", "PW", "PW", "PW", "PW", "PW", "PW", "PW"],
-            ["PW", "PW", "PW", "PW", "PW", "PW", "PW", "PW"],
+            ["PW", null, "PW", "PW", "PW", "PW", "PW", "PW"],
+            [null, "PW", null, "PW", "PW", "PW", "PW", "PW"],
+            ["PW", null, "PW", "PW", "PW", "PW", "PW", "PW"],
             ["PW", "PW", "PW", "PW", "PW", "PW", "PW", "PW"],
             ["PW", "PW", "PW", "PW", "PW", "PW", "PW", "PW"],
             ["PW", "PW", "PW", "PW", "PW", "PW", "PW", "PW"],

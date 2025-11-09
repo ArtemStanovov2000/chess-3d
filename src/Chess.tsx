@@ -1,12 +1,12 @@
+// Chess.tsx (улучшенная версия)
 import * as THREE from "three";
 import type { BoardCell, ChessBoard3D } from "./types";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useCallback } from "react";
 import { createSegments } from "./Textures/PlayingField/Segments/createSegments";
 import { startField } from "./Textures/PlayingField/startField";
 import { initializeBoard } from "./boardUtils";
 import { getPossibleMoves } from "./logic/moveLogic/moveLogic";
 import ChessBoard from "./ChessBoard";
-
 
 const Chess = () => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -18,17 +18,16 @@ const Chess = () => {
     const [board, setBoard] = useState<ChessBoard3D>(() => initializeBoard(startField));
     const [selectedPiece, setSelectedPiece] = useState<[number, number, number] | null>(null);
 
-    console.log(board)
-
     // Функция для получения срезов
-    const getSlices = (field: ChessBoard3D, sliceType:'depth') => {
+    const getSlices = useCallback((field: ChessBoard3D, sliceType: 'depth') => {
         const slices: BoardCell[][] = [];
+        
         if (sliceType === 'depth') {
-            for (let k = 0; k < 8; k++) {
-                const slice = [];
-                for (let i = 0; i < 8; i++) {
-                    for (let j = 0; j < 8; j++) {
-                        slice.push(field[i][j][k]);
+            for (let depth = 0; depth < 8; depth++) {
+                const slice: BoardCell[] = [];
+                for (let x = 0; x < 8; x++) {
+                    for (let y = 0; y < 8; y++) {
+                        slice.push(field[x][y][depth]);
                     }
                 }
                 slices.push(slice);
@@ -36,10 +35,79 @@ const Chess = () => {
         }
         
         return slices;
-    };
+    }, []);
+
+    // Очистка всех подсветок
+    const clearHighlights = useCallback(() => {
+        const newBoard = board.map(slice =>
+            slice.map(row =>
+                row.map(cell => ({
+                    ...cell,
+                    isHighlighted: false,
+                    isSelected: false,
+                    isAttack: false
+                }))
+            )
+        );
+        setBoard(newBoard);
+    }, [board]);
+
+    // Функция выполнения хода
+    const makeMove = useCallback((from: [number, number, number], to: [number, number, number]) => {
+        const [fromX, fromY, fromZ] = from;
+        const [toX, toY, toZ] = to;
+        
+        const newBoard = [...board];
+        const movingPiece = newBoard[fromX][fromY][fromZ].piece;
+        
+        if (movingPiece) {
+            // Перемещаем фигуру
+            newBoard[toX][toY][toZ] = {
+                ...newBoard[toX][toY][toZ],
+                piece: movingPiece
+            };
+            
+            // Очищаем старую позицию
+            newBoard[fromX][fromY][fromZ] = {
+                ...newBoard[fromX][fromY][fromZ],
+                piece: null
+            };
+        }
+
+        clearHighlights();
+        setSelectedPiece(null);
+        setBoard(newBoard);
+    }, [board, clearHighlights]);
+
+    // Подсветка возможных ходов
+    const highlightPossibleMoves = useCallback((position: [number, number, number], piece: any) => {
+        const [x, y, z] = position;
+        const possibleMoves = getPossibleMoves(position, piece, board);
+        
+        const newBoard = board.map((slice, i) =>
+            slice.map((row, j) =>
+                row.map((cell, k) => {
+                    const isSelected = i === x && j === y && k === z;
+                    const isPossibleMove = possibleMoves.some(([moveX, moveY, moveZ]) => 
+                        moveX === i && moveY === j && moveZ === k
+                    );
+                    const isAttack = isPossibleMove && cell.piece !== null && cell.piece.color !== piece.color;
+
+                    return {
+                        ...cell,
+                        isSelected,
+                        isHighlighted: isPossibleMove,
+                        isAttack
+                    };
+                })
+            )
+        );
+
+        setBoard(newBoard);
+    }, [board]);
 
     // Обработчик клика по фигуре
-    const handlePieceClick = (position: [number, number, number]) => {
+    const handlePieceClick = useCallback((position: [number, number, number]) => {
         const [x, y, z] = position;
         const cell = board[x]?.[y]?.[z];
         
@@ -64,86 +132,10 @@ const Chess = () => {
             setSelectedPiece(position);
             highlightPossibleMoves(position, cell.piece);
         }
-    };
+    }, [board, selectedPiece, clearHighlights, makeMove, highlightPossibleMoves]);
 
-    // Очистка всех подсветок
-    const clearHighlights = () => {
-        const newBoard = board.map(slice =>
-            slice.map(row =>
-                row.map(cell => ({
-                    ...cell,
-                    isHighlighted: false,
-                    isSelected: false,
-                    isAttack: false
-                }))
-            )
-        );
-        setBoard(newBoard);
-    };
-
-    // Подсветка возможных ходов
-    const highlightPossibleMoves = (position: [number, number, number], piece: any) => {
-        const [x, y, z] = position;
-        const possibleMoves = getPossibleMoves(position, piece, board);
-        
-        const newBoard = board.map((slice, i) =>
-            slice.map((row, j) =>
-                row.map((cell, k) => {
-                    // Проверяем, является ли эта клетка выбранной фигурой
-                    const isSelected = i === x && j === y && k === z;
-                    
-                    // Проверяем, является ли эта клетка возможным ходом
-                    const isMove = possibleMoves.some(([moveX, moveY, moveZ]) => 
-                        moveX === i && moveY === j && moveZ === k
-                    );
-                    
-                    // Проверяем, является ли клетка атакой (есть фигура противника)
-                    const isAttack = isMove && cell.piece !== null && cell.piece.color !== piece.color;
-
-                    return {
-                        ...cell,
-                        isSelected: isSelected,
-                        isHighlighted: isMove,
-                        isAttack: isAttack
-                    };
-                })
-            )
-        );
-
-        setBoard(newBoard);
-    };
-
-    // Функция выполнения хода
-    const makeMove = (from: [number, number, number], to: [number, number, number]) => {
-        const [fromX, fromY, fromZ] = from;
-        const [toX, toY, toZ] = to;
-        
-        const newBoard = [...board];
-        const movingPiece = newBoard[fromX][fromY][fromZ].piece;
-        
-        if (movingPiece) {
-            // Перемещаем фигуру
-            newBoard[toX][toY][toZ] = {
-                ...newBoard[toX][toY][toZ],
-                piece: movingPiece
-            };
-            
-            // Очищаем старую позицию
-            newBoard[fromX][fromY][fromZ] = {
-                ...newBoard[fromX][fromY][fromZ],
-                piece: null
-            };
-        }
-
-        clearHighlights();
-        setSelectedPiece(null);
-        setBoard(newBoard);
-    };
-
-    const slices = getSlices(board, 'depth');
-
-    // Three.js логика (без изменений)
-    const addSphere = (x: number, y: number, z: number) => {
+    // Three.js логика
+    const addSphere = useCallback((x: number, y: number, z: number) => {
         if (!sceneRef.current) {
             console.warn("Сцена не инициализирована");
             return;
@@ -160,9 +152,9 @@ const Chess = () => {
         const sphere = new THREE.Mesh(geometry, material);
         sphere.position.set(x - 3.5, y - 3.5, z - 3.5);
         sceneRef.current.add(sphere);
-    };
+    }, []);
 
-    const getCanvasSize = () => {
+    const getCanvasSize = useCallback(() => {
         const container = document.querySelector('.board-container') as HTMLElement;
         if (container) {
             return {
@@ -174,12 +166,13 @@ const Chess = () => {
             width: window.innerWidth,
             height: window.innerHeight
         };
-    };
+    }, []);
 
     useEffect(() => {
         if (!canvasRef.current) return;
 
-        const scene: THREE.Scene = new THREE.Scene();
+        // Инициализация Three.js сцены
+        const scene = new THREE.Scene();
         sceneRef.current = scene;
 
         const { width: canvasWidth, height: canvasHeight } = getCanvasSize();
@@ -203,18 +196,20 @@ const Chess = () => {
         renderer.setSize(canvasWidth, canvasHeight);
         rendererRef.current = renderer;
 
+        // Добавление фигур на сцену
         for (let i = 0; i < startField.length; i++) {
             for (let j = 0; j < startField.length; j++) {
                 for (let k = 0; k < startField.length; k++) {
                     if (startField[i][j][k] != null) {
-                        addSphere(i, j, k)
+                        addSphere(i, j, k);
                     }
                 }
             }
         }
 
-        createSegments(THREE, scene)
+        createSegments(THREE, scene);
 
+        // Управление камерой
         const cameraParams = {
             radius: 13,
             theta: Math.PI / 4,
@@ -232,6 +227,7 @@ const Chess = () => {
 
         updateCameraPosition();
 
+        // Обработчики клавиатуры
         const handleKeyDown = (event: KeyboardEvent) => {
             keyStateRef.current[event.key.toLowerCase()] = true;
         };
@@ -243,6 +239,7 @@ const Chess = () => {
         window.addEventListener('keydown', handleKeyDown);
         window.addEventListener('keyup', handleKeyUp);
 
+        // Анимация
         const animate = () => {
             animationIdRef.current = requestAnimationFrame(animate);
 
@@ -270,6 +267,7 @@ const Chess = () => {
 
         animate();
 
+        // Обработка изменения размера
         const handleResize = () => {
             const { width: newWidth, height: newHeight } = getCanvasSize();
             camera.aspect = newWidth / newHeight;
@@ -295,7 +293,9 @@ const Chess = () => {
             resizeObserver.disconnect();
             renderer.dispose();
         };
-    }, []);
+    }, [addSphere, getCanvasSize]);
+
+    const slices = getSlices(board, 'depth');
 
     return (
         <div className="chess-container">

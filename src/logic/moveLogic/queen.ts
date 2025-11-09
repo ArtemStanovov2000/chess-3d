@@ -1,7 +1,7 @@
-// logic/moveLogic/rook.ts
+// logic/moveLogic/queen.ts
 import type { ChessBoard3D } from "../../types";
 
-export const addRookMoves = (
+export const addQueenMoves = (
     position: [number, number, number], 
     board: ChessBoard3D, 
     color: 'W' | 'B', 
@@ -9,14 +9,41 @@ export const addRookMoves = (
 ) => {
     const [startX, startY, startZ] = position;
 
-    // Направления движения ладьи в 3D пространстве
+    // Все направления движения ферзя в 3D пространстве
     const directions = [
+        // Ортогональные направления (как ладья) - 6 направлений
         { dx: 1, dy: 0, dz: 0 },  // +X
         { dx: -1, dy: 0, dz: 0 }, // -X
         { dx: 0, dy: 1, dz: 0 },  // +Y
         { dx: 0, dy: -1, dz: 0 }, // -Y
         { dx: 0, dy: 0, dz: 1 },  // +Z
-        { dx: 0, dy: 0, dz: -1 }  // -Z
+        { dx: 0, dy: 0, dz: -1 }, // -Z
+        
+        // Пространственные диагонали (как слон) - 8 направлений
+        // Все координаты меняются одинаково
+        { dx: 1, dy: 1, dz: 1 },
+        { dx: 1, dy: 1, dz: -1 },
+        { dx: 1, dy: -1, dz: 1 },
+        { dx: 1, dy: -1, dz: -1 },
+        { dx: -1, dy: 1, dz: 1 },
+        { dx: -1, dy: 1, dz: -1 },
+        { dx: -1, dy: -1, dz: 1 },
+        { dx: -1, dy: -1, dz: -1 },
+        
+        // Плоскостные диагонали (дополнительные для 3D) - 12 направлений
+        // Две координаты меняются, одна остается
+        { dx: 1, dy: 1, dz: 0 },
+        { dx: 1, dy: -1, dz: 0 },
+        { dx: -1, dy: 1, dz: 0 },
+        { dx: -1, dy: -1, dz: 0 },
+        { dx: 1, dy: 0, dz: 1 },
+        { dx: 1, dy: 0, dz: -1 },
+        { dx: -1, dy: 0, dz: 1 },
+        { dx: -1, dy: 0, dz: -1 },
+        { dx: 0, dy: 1, dz: 1 },
+        { dx: 0, dy: 1, dz: -1 },
+        { dx: 0, dy: -1, dz: 1 },
+        { dx: 0, dy: -1, dz: -1 }
     ];
 
     // Проверяем каждое направление

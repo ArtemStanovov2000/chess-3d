@@ -1,7 +1,7 @@
-// logic/moveLogic/rook.ts
+// logic/moveLogic/elephant.ts
 import type { ChessBoard3D } from "../../types";
 
-export const addRookMoves = (
+export const addElephantMoves = (
     position: [number, number, number], 
     board: ChessBoard3D, 
     color: 'W' | 'B', 
@@ -9,14 +9,17 @@ export const addRookMoves = (
 ) => {
     const [startX, startY, startZ] = position;
 
-    // Направления движения ладьи в 3D пространстве
+    // Направления движения слона в 3D пространстве
+    // Только полные диагонали (все 3 координаты меняются одинаково)
     const directions = [
-        { dx: 1, dy: 0, dz: 0 },  // +X
-        { dx: -1, dy: 0, dz: 0 }, // -X
-        { dx: 0, dy: 1, dz: 0 },  // +Y
-        { dx: 0, dy: -1, dz: 0 }, // -Y
-        { dx: 0, dy: 0, dz: 1 },  // +Z
-        { dx: 0, dy: 0, dz: -1 }  // -Z
+        { dx: 1, dy: 1, dz: 1 },
+        { dx: 1, dy: 1, dz: -1 },
+        { dx: 1, dy: -1, dz: 1 },
+        { dx: 1, dy: -1, dz: -1 },
+        { dx: -1, dy: 1, dz: 1 },
+        { dx: -1, dy: 1, dz: -1 },
+        { dx: -1, dy: -1, dz: 1 },
+        { dx: -1, dy: -1, dz: -1 }
     ];
 
     // Проверяем каждое направление
